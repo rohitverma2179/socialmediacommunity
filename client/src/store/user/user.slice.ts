@@ -45,6 +45,9 @@ const userSlice = createSlice({
           state.isLoading = false;
           state.user = action.payload.data?.user || action.payload.user;
           state.success = true;
+          if (action.payload.token) {
+            localStorage.setItem("token", action.payload.token);
+          }
         })
         .addCase(thunk.rejected, (state, action) => {
           state.isLoading = false;
@@ -104,6 +107,7 @@ const userSlice = createSlice({
     builder.addCase(logoutUser.fulfilled, (state) => {
       state.user = null;
       state.success = false;
+      localStorage.removeItem("token");
     });
   },
 });
