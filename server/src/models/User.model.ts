@@ -1,0 +1,45 @@
+import mongoose, { Schema, Document } from "mongoose";
+import bcrypt from "bcryptjs";
+
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  password?: string;
+  googleId?: string;
+  facebookId?: string;
+  isVerified: boolean;
+otp?: string | null
+otpExpires?: Date | null
+  verificationToken?: string;
+  verificationTokenExpires?: Date;
+  comparePassword: (password: string) => Promise<boolean>;
+}
+
+const userSchema = new Schema<IUser>(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, select: false },
+    googleId: { type: String, unique: true, sparse: true },
+    facebookId: { type: String, unique: true, sparse: true },
+    isVerified: { type: Boolean, default: false },
+    otp: String,
+    otpExpires: Date,
+    verificationToken: String,
+    verificationTokenExpires: Date,
+  },
+  { timestamps: true }
+);
+
+// Hash password before saving
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password!, 12);
+});
+
+// Instance method to compare password
+userSchema.methods.comparePassword = async function (candidatePassword: string) {
+  return await bcrypt.compare(candidatePassword, this.password!);
+};
+
+export default mongoose.model<IUser>("User", userSchema);
