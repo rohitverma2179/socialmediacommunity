@@ -10,7 +10,9 @@ export const initSocket = (server: http.Server) => {
         "https://egrowthindia.in",
         "https://www.egrowthindia.in",
         "http://localhost:5173",
-        "https://community-final-vf8t.vercel.app"
+        "https://community-final-vf8t.vercel.app",
+        "https://testing.swastixa.in",
+        "https://www.testing.swastixa.in"
       ],
       methods: ["GET", "POST"],
       credentials: true,

@@ -27,9 +27,14 @@ app.use(
       "https://www.egrowthindia.in",
       "http://localhost:5173",
       "https://community-final-vf8t.vercel.app",
-      "https://socialmediacommunity.vercel.app"
+      "https://socialmediacommunity.vercel.app",
+      "https://testing.swastixa.in",
+      "https://www.testing.swastixa.in",
     ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    optionsSuccessStatus: 200,
   }),
 );
 app.use(express.json());
