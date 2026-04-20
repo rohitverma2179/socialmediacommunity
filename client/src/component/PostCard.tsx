@@ -7,6 +7,7 @@ import type { RootState, AppDispatch } from '../store/store';
 import ShareModal from './ShareModal';
 import socket from '../utils/socket';
 import { renderFormattedContent } from '../utils/formatContent';
+import PostMediaGallery from './PostMediaGallery';
 // import CommentModal from './CommentModal';
 
 interface PostCardProps {
@@ -18,7 +19,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
-  const [pdfPage, setPdfPage] = useState(1);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -68,81 +68,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
 
   const renderMedia = () => {
     if (!post.images || post.images.length === 0) return null;
-
-    const mediaUrl = post.images[0];
     const mediaType = post.mediaType || 'image';
+    const galleryMode = isDetailed && post.images.length > 1 ? 'carousel' : 'grid';
+    const galleryHeight = isDetailed ? 'max-h-[560px]' : 'max-h-[420px]';
 
-    switch (mediaType) {
-      case 'video':
-        return (
-          <div className="relative group rounded-xl overflow-hidden border border-[#333] bg-black max-h-[500px] w-full flex items-center justify-center">
-            <video src={mediaUrl} controls className="max-w-full max-h-[500px] object-contain bg-black" />
-          </div>
-        );
-      case 'pdf':
-        const getPdfPreviewUrl = (pageNumber: number) => {
-          return mediaUrl.replace('/upload/', `/upload/pg_${pageNumber}/`).replace('.pdf', '.jpg');
-        };
-
-        return (
-          <div className="overflow-hidden bg-[#1e1e1e] border border-[#333] rounded-xl">
-            <div className="p-3 flex items-center justify-between border-b border-[#333]">
-              <span className="text-rose-500 font-bold text-[10px] uppercase tracking-wider">PDF PREVIEW</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPdfPage(1)}
-                  className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${pdfPage === 1 ? 'bg-[#333] text-white' : 'text-gray-500 hover:text-white'}`}
-                >
-                  P1
-                </button>
-                <button
-                  onClick={() => setPdfPage(2)}
-                  className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${pdfPage === 2 ? 'bg-[#333] text-white' : 'text-gray-500 hover:text-white'}`}
-                >
-                  P2
-                </button>
-                <a
-                  href={mediaUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-[10px] font-bold transition-all"
-                >
-                  Download
-                </a>
-              </div>
-            </div>
-
-            <div className="bg-[#111] max-h-[500px] flex items-center justify-center overflow-hidden">
-              <img
-                src={getPdfPreviewUrl(pdfPage)}
-                alt={`PDF Page ${pdfPage}`}
-                className="max-w-full max-h-[500px] object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "https://placehold.co/600x800?text=Page+Not+Found";
-                }}
-              />
-            </div>
-          </div>
-        );
-      case 'image':
-      case 'gif':
-      default:
-        return (
-          <div className={`grid gap-2 rounded-xl overflow-hidden ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {post.images.slice(0, 4).map((imageUrl: string, index: number) => (
-              <div key={`${imageUrl}-${index}`} className="overflow-hidden border border-[#333] bg-[#000] max-h-[500px] w-full relative flex items-center justify-center">
-                <img
-                  src={imageUrl}
-                  alt={`Post content ${index + 1}`}
-                  className="w-full h-full max-h-[500px] object-cover cursor-pointer"
-                  onClick={() => navigate(`/post/${post._id}`)}
-                />
-              </div>
-            ))}
-          </div>
-        );
-    }
+    return (
+      <PostMediaGallery
+        images={post.images}
+        mediaType={mediaType}
+        mode={galleryMode}
+        heightClassName={galleryHeight}
+        onMediaClick={() => navigate(`/post/${post._id}`)}
+      />
+    );
   };
 
   const truncatedContent = (!isDetailed && post.content?.length > 160 && !isExpanded) 

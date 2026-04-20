@@ -174,7 +174,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-lg bg-[#1a1a1a] rounded-3xl border border-[#333] relative z-10 overflow-hidden shadow-2xl"
+            className="w-full max-w-lg max-h-[90vh] bg-[#1a1a1a] rounded-3xl border border-[#333] relative z-10 overflow-hidden shadow-2xl flex flex-col"
           >
             <div className="p-6 border-b border-[#333] flex items-center justify-between">
               <h3 className="text-lg font-bold">Create Post</h3>
@@ -183,56 +183,58 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6">
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="What's on your mind?"
-                className="w-full bg-transparent border-none outline-none resize-none text-lg min-h-[120px] placeholder:text-gray-600"
-                autoFocus
-              />
+            <form onSubmit={handleSubmit} className="flex flex-1 min-h-0 flex-col">
+              <div className="flex-1 overflow-y-auto p-6">
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="What's on your mind?"
+                  className="w-full bg-transparent border-none outline-none resize-none text-lg min-h-[120px] placeholder:text-gray-600"
+                  autoFocus
+                />
 
-              {media.length > 0 && (
-                <div className={`mt-4 grid gap-3 ${media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  {media.map((item, index) => (
-                    <div key={`${item.url}-${index}`} className="relative group rounded-2xl overflow-hidden border border-[#333] bg-[#0a0a0a] min-h-[12rem]">
-                      {item.type === 'video' ? (
-                        <video src={item.url} controls className="w-full h-48 object-cover" />
-                      ) : item.type === 'pdf' ? (
-                        <div className="p-8 h-full flex flex-col items-center justify-center gap-3">
-                          <FileText size={48} className="text-blue-500" />
-                          <span className="text-sm font-bold truncate max-w-full px-4">{item.url.split('/').pop()}</span>
-                        </div>
-                      ) : (
-                        <img src={item.url} alt={`Preview ${index + 1}`} className="w-full h-48 object-cover" />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeMediaAtIndex(index)}
-                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full transition-all"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {media.length > 0 && (
+                  <div className={`mt-4 grid gap-3 ${media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {media.map((item, index) => (
+                      <div key={`${item.url}-${index}`} className="relative group rounded-2xl overflow-hidden border border-[#333] bg-[#0a0a0a] min-h-[10rem]">
+                        {item.type === 'video' ? (
+                          <video src={item.url} controls className="w-full h-40 object-cover" />
+                        ) : item.type === 'pdf' ? (
+                          <div className="p-8 h-40 flex flex-col items-center justify-center gap-3">
+                            <FileText size={48} className="text-blue-500" />
+                            <span className="text-sm font-bold truncate max-w-full px-4">{item.url.split('/').pop()}</span>
+                          </div>
+                        ) : (
+                          <img src={item.url} alt={`Preview ${index + 1}`} className="w-full h-40 object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeMediaAtIndex(index)}
+                          className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full transition-all"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-              {error && (
-                <div className="mt-4 flex items-center gap-2 text-rose-500 text-xs font-bold bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
-                  <AlertCircle size={14} />
-                  {error}
-                </div>
-              )}
+                {error && (
+                  <div className="mt-4 flex items-center gap-2 text-rose-500 text-xs font-bold bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
+                    <AlertCircle size={14} />
+                    {error}
+                  </div>
+                )}
 
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden" 
-              />
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden" 
+                />
+              </div>
 
-              <div className="mt-8 flex flex-col gap-6">
+              <div className="border-t border-[#222] bg-[#1a1a1a] p-6 pt-4">
                 <div className="flex border-t border-[#222] pt-4 items-center justify-between">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Add Media</span>
                   <div className="flex gap-1">
@@ -263,7 +265,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
 
                 <button 
                   disabled={!content.trim() || isUploading || isPosting}
-                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-xl shadow-blue-500/20"
+                  className="mt-4 w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-xl shadow-blue-500/20"
                 >
                   {isPosting ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                   <span>{isPosting ? 'Posting...' : 'Create Post'}</span>

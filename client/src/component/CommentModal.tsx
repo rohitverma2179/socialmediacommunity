@@ -6,6 +6,7 @@ import type { AppDispatch, RootState } from '../store/store';
 import { fetchPostComments, addComment } from '../store/comment/comment.slice';
 import CommentItem from './CommentItem';
 import toast from 'react-hot-toast';
+import PostMediaGallery from './PostMediaGallery';
 
 interface CommentModalProps {
   isOpen: boolean;
@@ -60,13 +61,12 @@ const CommentModal: React.FC<CommentModalProps> = ({ isOpen, onClose, post }) =>
         </div>
         <p className="text-sm text-gray-300 leading-relaxed mb-3">{post.content}</p>
         {post.images && post.images.length > 0 && (
-          <div className="rounded-xl overflow-hidden border border-[#333] bg-black max-h-[200px] w-full flex items-center justify-center">
-            {post.mediaType === 'video' ? (
-              <video src={post.images[0]} className="max-w-full max-h-[200px] object-contain" />
-            ) : (
-              <img src={post.images[0]} alt="" className="max-w-full max-h-[200px] object-contain" />
-            )}
-          </div>
+          <PostMediaGallery
+            images={post.images}
+            mediaType={post.mediaType}
+            mode={post.images.length > 1 ? 'carousel' : 'grid'}
+            heightClassName="max-h-[240px]"
+          />
         )}
       </div>
     );
