@@ -1,3 +1,4 @@
+
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import axiosInstance from '../../utils/axiosInstance';
 
@@ -161,4 +162,3 @@ const postSlice = createSlice({
 
 export const { addPostToFeed, setPostModalOpen, updatePostLikes, addNewPost, incrementCommentCount, updatePostInState } = postSlice.actions;
 export default postSlice.reducer;
-

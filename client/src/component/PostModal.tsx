@@ -37,14 +37,19 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Adjusted limits: Images/PDFs 2MB, Videos 10MB
-    const limit = uploadType === 'video' ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+    // Adjusted limits: Images/PDFs 8MB, Videos 60MB
+    const limit = uploadType === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
+    
     if (file.size > limit) {
-      setError(`File too large (Max ${uploadType === 'video' ? '10MB' : '2MB'})`);
+      const typeDisplay = uploadType === 'video' ? 'Video' : uploadType === 'pdf' ? 'Document' : 'Image';
+      const sizeDisplay = uploadType === 'video' ? '60MB' : '8MB';
+      
+      setError(`${typeDisplay} file too large (Maximum ${sizeDisplay})`);
       setTimeout(() => setError(''), 4000);
       return;
     }
 
+    
     setError('');
     setIsUploading(true);
 
