@@ -11,7 +11,7 @@ export const fetchPosts = createAsyncThunk('post/fetchPosts', async () => {
 
 export const createPost = createAsyncThunk(
   'post/createPost',
-  async (postData: { content: string; images?: string[] }, { rejectWithValue }) => {
+  async (postData: { content: string; images?: string[]; mediaType?: 'image' | 'video' | 'pdf' | 'gif' }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post(API_URL, postData);
       return response.data.data.post;

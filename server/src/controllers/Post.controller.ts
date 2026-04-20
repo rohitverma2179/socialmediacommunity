@@ -6,15 +6,24 @@ import { getIO } from "../utils/socket.js";
 export const createPost = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { content, images, mediaType } = req.body;
+    const normalizedImages = Array.isArray(images) ? images.filter(Boolean) : [];
 
     if (!content) {
       return res.status(400).json({ status: "fail", message: "Post content is required" });
     }
 
+    if (normalizedImages.length > 4) {
+      return res.status(400).json({ status: "fail", message: "You can upload up to 4 images per post" });
+    }
+
+    if ((mediaType === "video" || mediaType === "pdf") && normalizedImages.length > 1) {
+      return res.status(400).json({ status: "fail", message: `Only one ${mediaType} can be uploaded per post` });
+    }
+
     const newPost = await Post.create({
       user: req.user._id,
       content,
-      images: images || [],
+      images: normalizedImages,
       mediaType: mediaType || 'image'
     });
 

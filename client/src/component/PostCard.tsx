@@ -129,13 +129,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
       case 'gif':
       default:
         return (
-          <div className="rounded-xl overflow-hidden border border-[#333] bg-[#000] max-h-[500px] w-full relative flex items-center justify-center">
-            <img 
-              src={mediaUrl} 
-              alt="Post content" 
-              className="max-w-full max-h-[500px] object-contain cursor-pointer" 
-              onClick={() => navigate(`/post/${post._id}`)} 
-            />
+          <div className={`grid gap-2 rounded-xl overflow-hidden ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {post.images.slice(0, 4).map((imageUrl: string, index: number) => (
+              <div key={`${imageUrl}-${index}`} className="overflow-hidden border border-[#333] bg-[#000] max-h-[500px] w-full relative flex items-center justify-center">
+                <img
+                  src={imageUrl}
+                  alt={`Post content ${index + 1}`}
+                  className="w-full h-full max-h-[500px] object-cover cursor-pointer"
+                  onClick={() => navigate(`/post/${post._id}`)}
+                />
+              </div>
+            ))}
           </div>
         );
     }

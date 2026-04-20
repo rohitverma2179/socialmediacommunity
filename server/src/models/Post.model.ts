@@ -14,7 +14,13 @@ const PostSchema: Schema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     content: { type: String, required: true },
-    images: [{ type: String }],
+    images: {
+      type: [{ type: String }],
+      validate: {
+        validator: (images: string[]) => images.length <= 4,
+        message: "A post can contain at most 4 images",
+      },
+    },
     mediaType: { type: String, enum: ['image', 'video', 'pdf', 'gif'], default: 'image' },
     likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
     commentsCount: { type: Number, default: 0 },

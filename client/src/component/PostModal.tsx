@@ -10,9 +10,14 @@ interface PostModalProps {
   onClose: () => void;
 }
 
+type PostMediaItem = {
+  url: string;
+  type: 'image' | 'video' | 'pdf' | 'gif';
+};
+
 const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const [content, setContent] = useState('');
-  const [media, setMedia] = useState<{ url: string; type: 'image' | 'video' | 'pdf' | 'gif' } | null>(null);
+  const [media, setMedia] = useState<PostMediaItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState('');
@@ -33,56 +38,81 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const removeMediaAtIndex = (indexToRemove: number) => {
+    setMedia((currentMedia) => currentMedia.filter((_, index) => index !== indexToRemove));
+  };
 
-    // Adjusted limits: Images/PDFs 8MB, Videos 60MB
-    const limit = uploadType === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
-    
-    if (file.size > limit) {
-      const typeDisplay = uploadType === 'video' ? 'Video' : uploadType === 'pdf' ? 'Document' : 'Image';
-      const sizeDisplay = uploadType === 'video' ? '60MB' : '8MB';
-      
-      setError(`${typeDisplay} file too large (Maximum ${sizeDisplay})`);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    const isMultiImageUpload = uploadType === 'image' || uploadType === 'gif';
+    const existingCount = isMultiImageUpload ? media.length : 0;
+    const maxAllowed = isMultiImageUpload ? 4 : 1;
+
+    if (!isMultiImageUpload && selectedFiles.length > 1) {
+      setError('Only one video or PDF can be uploaded at a time');
       setTimeout(() => setError(''), 4000);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    
+    if (existingCount + selectedFiles.length > maxAllowed) {
+      setError(`You can upload up to ${maxAllowed} ${uploadType === 'image' ? 'images' : uploadType === 'gif' ? 'GIFs' : 'files'} per post`);
+      setTimeout(() => setError(''), 4000);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const limit = uploadType === 'video' ? 60 * 1024 * 1024 : 8 * 1024 * 1024;
+    const oversizedFile = selectedFiles.find((file) => file.size > limit);
+    if (oversizedFile) {
+      const typeDisplay = uploadType === 'video' ? 'Video' : uploadType === 'pdf' ? 'Document' : 'Image';
+      const sizeDisplay = uploadType === 'video' ? '60MB' : '8MB';
+      setError(`${typeDisplay} file too large (Maximum ${sizeDisplay})`);
+      setTimeout(() => setError(''), 4000);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setError('');
     setIsUploading(true);
 
     try {
-      const timestamp = Math.round(new Date().getTime() / 1000);
-      const signature = await generateSignature(timestamp);
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', CLOUDINARY_API_KEY);
-      formData.append('timestamp', timestamp.toString());
-      formData.append('signature', signature);
-      
       // Determine Cloudinary resource_type
       let resourceType = 'image';
       if (uploadType === 'video') resourceType = 'video';
       if (uploadType === 'pdf') resourceType = 'auto'; // auto handles raw/pdf
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      const uploadedMedia: PostMediaItem[] = [];
 
-      const data = await response.json();
-      
-      if (data.secure_url) {
-        setMedia({ url: data.secure_url, type: uploadType });
-        setError('');
-      } else {
-        setError(data.error?.message || 'Upload failed');
+      for (const file of selectedFiles) {
+        const timestamp = Math.round(new Date().getTime() / 1000);
+        const signature = await generateSignature(timestamp);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', CLOUDINARY_API_KEY);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('signature', signature);
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (!data.secure_url) {
+          throw new Error(data.error?.message || 'Upload failed');
+        }
+
+        uploadedMedia.push({ url: data.secure_url, type: uploadType });
       }
+
+      setMedia((currentMedia) => (isMultiImageUpload ? [...currentMedia, ...uploadedMedia] : uploadedMedia));
+      setError('');
     } catch (err) {
-      setError('Error uploading. Please check connection.');
+      setError(err instanceof Error ? err.message : 'Error uploading. Please check connection.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -91,6 +121,11 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
 
   const triggerUpload = (type: 'image' | 'video' | 'pdf' | 'gif') => {
     setUploadType(type);
+
+    if ((type === 'video' || type === 'pdf') && media.length > 0) {
+      setMedia([]);
+    }
+
     if (fileInputRef.current) {
       // Set accept string based on type
       let accept = 'image/*';
@@ -98,6 +133,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
       if (type === 'pdf') accept = '.pdf';
       if (type === 'gif') accept = 'image/gif';
       fileInputRef.current.accept = accept;
+      fileInputRef.current.multiple = type === 'image' || type === 'gif';
       fileInputRef.current.click();
     }
   };
@@ -109,12 +145,12 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     try {
       await dispatch(createPost({ 
         content, 
-        images: media ? [media.url] : [],
-        mediaType: media?.type || 'image'
+        images: media.map((item) => item.url),
+        mediaType: media[0]?.type || 'image'
       } as any)).unwrap();
       
       setContent('');
-      setMedia(null);
+      setMedia([]);
       onClose();
     } catch (err: any) {
       setError('Failed to create post');
@@ -156,25 +192,29 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                 autoFocus
               />
 
-              {media && (
-                <div className="mt-4 relative group rounded-2xl overflow-hidden border border-[#333] bg-[#0a0a0a]">
-                  {media.type === 'video' ? (
-                    <video src={media.url} controls className="w-full h-48 object-cover" />
-                  ) : media.type === 'pdf' ? (
-                    <div className="p-8 flex flex-col items-center justify-center gap-3">
-                       <FileText size={48} className="text-blue-500" />
-                       <span className="text-sm font-bold truncate max-w-full px-4">{media.url.split('/').pop()}</span>
+              {media.length > 0 && (
+                <div className={`mt-4 grid gap-3 ${media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {media.map((item, index) => (
+                    <div key={`${item.url}-${index}`} className="relative group rounded-2xl overflow-hidden border border-[#333] bg-[#0a0a0a] min-h-[12rem]">
+                      {item.type === 'video' ? (
+                        <video src={item.url} controls className="w-full h-48 object-cover" />
+                      ) : item.type === 'pdf' ? (
+                        <div className="p-8 h-full flex flex-col items-center justify-center gap-3">
+                          <FileText size={48} className="text-blue-500" />
+                          <span className="text-sm font-bold truncate max-w-full px-4">{item.url.split('/').pop()}</span>
+                        </div>
+                      ) : (
+                        <img src={item.url} alt={`Preview ${index + 1}`} className="w-full h-48 object-cover" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeMediaAtIndex(index)}
+                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full transition-all"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
-                  ) : (
-                    <img src={media.url} alt="Preview" className="w-full h-48 object-cover" />
-                  )}
-                  <button 
-                    type="button"
-                    onClick={() => setMedia(null)}
-                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full transition-all"
-                  >
-                    <X size={16} />
-                  </button>
+                  ))}
                 </div>
               )}
 
@@ -208,13 +248,18 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                         onClick={() => triggerUpload(btn.type as any)}
                         disabled={isUploading}
                         title={btn.label}
-                        className={`p-3 rounded-xl transition-all ${uploadType === btn.type && media ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-white'}`}
+                        className={`p-3 rounded-xl transition-all ${uploadType === btn.type && media.length > 0 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-white'}`}
                       >
                         {isUploading && uploadType === btn.type ? <Loader2 size={20} className="animate-spin" /> : btn.icon}
                       </button>
                     ))}
                   </div>
                 </div>
+                {(uploadType === 'image' || uploadType === 'gif') && (
+                  <p className="text-xs text-gray-500">
+                    You can upload up to 4 {uploadType === 'gif' ? 'GIFs' : 'images'} in one post.
+                  </p>
+                )}
 
                 <button 
                   disabled={!content.trim() || isUploading || isPosting}
