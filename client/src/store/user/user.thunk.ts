@@ -62,6 +62,18 @@ export const getMe = createAsyncThunk(
   }
 );
 
+export const toggleSavePost = createAsyncThunk(
+  "user/toggleSavePost",
+  async (postId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(`/users/saved/${postId}`);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Failed to update saved posts");
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   "user/logout",
   async (_, { rejectWithValue }) => {

@@ -16,12 +16,14 @@ export const addComment = createAsyncThunk('comment/addComment', async (commentD
 interface CommentState {
   comments: any[];
   loading: boolean;
+  submitting: boolean;
   error: string | null;
 }
 
 const initialState: CommentState = {
   comments: [],
   loading: false,
+  submitting: false,
   error: null,
 };
 
@@ -37,9 +39,12 @@ const commentSlice = createSlice({
     addNewCommentLocally: (state, action: PayloadAction<{ comment: any; postId: string }>) => {
       const newComment = { ...action.payload.comment, repliesData: [] };
       if (newComment.parentComment) {
+        const parentId = typeof newComment.parentComment === 'string'
+          ? newComment.parentComment
+          : newComment.parentComment._id;
         const addReply = (comments: any[]) => {
           for (let comment of comments) {
-            if (comment._id === newComment.parentComment) {
+            if (comment._id === parentId) {
               if (!comment.repliesData) comment.repliesData = [];
               const exists = comment.repliesData.some((r: any) => r._id === newComment._id);
               if (!exists) comment.repliesData.push(newComment);
@@ -99,15 +104,24 @@ const commentSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch comments';
       })
+      .addCase(addComment.pending, (state) => {
+        state.submitting = true;
+        state.error = null;
+      })
       .addCase(addComment.fulfilled, (state, action) => {
+        state.submitting = false;
         const newComment = { ...action.payload, repliesData: [] };
         if (newComment.parentComment) {
+          const parentId = typeof newComment.parentComment === 'string'
+            ? newComment.parentComment
+            : newComment.parentComment._id;
           // Find parent and add to its repliesData if it exists
           const addReply = (comments: any[]) => {
             for (let comment of comments) {
-              if (comment._id === newComment.parentComment) {
+              if (comment._id === parentId) {
                 if (!comment.repliesData) comment.repliesData = [];
-                comment.repliesData.push(newComment);
+                const exists = comment.repliesData.some((reply: any) => reply._id === newComment._id);
+                if (!exists) comment.repliesData.push(newComment);
                 return true;
               }
               if (comment.repliesData && addReply(comment.repliesData)) return true;
@@ -116,8 +130,13 @@ const commentSlice = createSlice({
           };
           addReply(state.comments);
         } else {
-          state.comments.push(newComment);
+          const exists = state.comments.some(comment => comment._id === newComment._id);
+          if (!exists) state.comments.push(newComment);
         }
+      })
+      .addCase(addComment.rejected, (state, action) => {
+        state.submitting = false;
+        state.error = action.error.message || 'Failed to add comment';
       })
       .addCase(likeComment.fulfilled, (state, action) => {
           // Find in main comments or nested replies

@@ -19,6 +19,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, depth = 0 })
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.user);
+  const { submitting } = useSelector((state: RootState) => state.comment);
 
   const isLiked = user && comment.likes?.includes(user._id);
 
@@ -28,10 +29,10 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, depth = 0 })
       navigate('/login');
       return;
     }
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || submitting) return;
 
     await dispatch(addComment({
-      content: replyText,
+      content: replyText.trim(),
       postId,
       parentCommentId: comment._id
     }));
@@ -123,7 +124,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, depth = 0 })
               />
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setShowReplyInput(false)} className="text-xs font-bold text-gray-400 px-3 py-1.5 hover:bg-[#2a2a2a] rounded-full">Cancel</button>
-                <button type="submit" className="bg-[#3ea6ff] text-black px-4 py-1.5 rounded-full text-xs font-bold hover:bg-[#65b8ff] disabled:opacity-50" disabled={!replyText.trim()}>Reply</button>
+                <button type="submit" className="bg-[#3ea6ff] text-black px-4 py-1.5 rounded-full text-xs font-bold hover:bg-[#65b8ff] disabled:opacity-50" disabled={!replyText.trim() || submitting}>Reply</button>
               </div>
             </form>
           )}

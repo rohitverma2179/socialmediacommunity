@@ -8,8 +8,9 @@ export interface IUser extends Document {
   googleId?: string;
   facebookId?: string;
   isVerified: boolean;
-otp?: string | null
-otpExpires?: Date | null
+  otp?: string | null;
+  otpExpires?: Date | null;
+  savedPosts: mongoose.Types.ObjectId[];
   verificationToken?: string;
   verificationTokenExpires?: Date;
   comparePassword: (password: string) => Promise<boolean>;
@@ -25,6 +26,7 @@ const userSchema = new Schema<IUser>(
     isVerified: { type: Boolean, default: false },
     otp: String,
     otpExpires: Date,
+    savedPosts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
     verificationToken: String,
     verificationTokenExpires: Date,
   },

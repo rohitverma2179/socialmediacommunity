@@ -1,12 +1,14 @@
 import type { Request, Response } from "express";
 import User from "../models/User.model.js";
 import type { IUser } from "../models/User.model.js";
+import Post from "../models/Post.model.js";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 import { sendEmail } from "../utils/email.js";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import axios from "axios";
+import type { AuthRequest } from "../middleware/auth.middleware.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -303,7 +305,10 @@ export const facebookLogin = async (
 
 export const getMe = async (req: any, res: Response): Promise<any> => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate({
+      path: "savedPosts",
+      populate: { path: "user", select: "name email" },
+    });
     res.status(200).json({
       status: "success",
       data: { user },
@@ -319,6 +324,52 @@ export const logout = (req: Request, res: Response) => {
     httpOnly: true,
   });
   res.status(200).json({ status: "success" });
+};
+
+export const toggleSavedPost = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { postId } = req.params;
+    const user = await User.findById(req.user?._id);
+
+    if (!user) {
+      return res.status(404).json({ status: "fail", message: "User not found" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ status: "fail", message: "Post not found" });
+    }
+
+    const isAlreadySaved = user.savedPosts.some(
+      (savedPostId) => savedPostId.toString() === postId,
+    );
+
+    if (isAlreadySaved) {
+      user.savedPosts = user.savedPosts.filter(
+        (savedPostId) => savedPostId.toString() !== postId,
+      );
+    } else {
+      user.savedPosts.unshift(post._id);
+    }
+
+    await user.save();
+
+    const populatedUser = await User.findById(user._id).populate({
+      path: "savedPosts",
+      populate: { path: "user", select: "name email" },
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: isAlreadySaved ? "Post removed from saved" : "Post saved successfully",
+      data: {
+        user: populatedUser,
+        saved: !isAlreadySaved,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
 };
 
 export const resendOTP = async (req: Request, res: Response): Promise<any> => {

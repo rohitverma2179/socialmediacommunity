@@ -92,6 +92,23 @@ export const getUserPosts = async (req: Request, res: Response): Promise<any> =>
     res.status(500).json({ status: "error", message: error.message });
   }
 };
+
+export const getLikedPosts = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { userId } = req.params;
+    const posts = await Post.find({ likes: userId } as any)
+      .populate("user", "name email")
+      .sort("-createdAt");
+
+    res.status(200).json({
+      status: "success",
+      results: posts.length,
+      data: { posts },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
 export const likePost = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { postId } = req.params;

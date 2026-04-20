@@ -8,6 +8,7 @@ import ShareModal from './ShareModal';
 import socket from '../utils/socket';
 import { renderFormattedContent } from '../utils/formatContent';
 import PostMediaGallery from './PostMediaGallery';
+import { toggleSavePost } from '../store/user/user.thunk';
 // import CommentModal from './CommentModal';
 
 interface PostCardProps {
@@ -28,6 +29,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
 
   const isOwner = user && (post.user?._id === user._id || post.user === user._id);
   const isLiked = user && post.likes?.includes(user._id);
+  const isSaved = !!user?.savedPosts?.some((savedPost: any) => {
+    if (typeof savedPost === 'string') return savedPost === post._id;
+    return savedPost?._id === post._id;
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,6 +69,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
       return;
     }
     dispatch(likePost(post._id));
+  };
+
+  const handleSavePost = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    await dispatch(toggleSavePost(post._id));
+    setShowDropdown(false);
   };
 
   const renderMedia = () => {
@@ -108,7 +124,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
             </div>
           </div>
         </div>
-        {isOwner && (
+        {user && (
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={(e) => {
@@ -122,17 +138,27 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
             
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-36 bg-[#262626] border border-[#333] rounded-lg shadow-xl z-50 overflow-hidden">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditing(true);
-                    setShowDropdown(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-[#333] transition-colors"
-                >
-                  <Pencil size={14} />
-                  <span>Edit Post</span>
-                </button>
+                {isOwner ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEditing(true);
+                      setShowDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-[#333] transition-colors"
+                  >
+                    <Pencil size={14} />
+                    <span>Edit Post</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSavePost}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-[#333] transition-colors"
+                  >
+                    <Pencil size={14} />
+                    <span>{isSaved ? 'Unsave Post' : 'Save Post'}</span>
+                  </button>
+                )}
                 {/* <button
                   onClick={(e) => {
                     e.stopPropagation();

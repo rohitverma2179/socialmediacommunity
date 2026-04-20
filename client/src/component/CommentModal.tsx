@@ -16,7 +16,7 @@ interface CommentModalProps {
 
 const CommentModal: React.FC<CommentModalProps> = ({ isOpen, onClose, post }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { comments, loading } = useSelector((state: RootState) => state.comment);
+  const { comments, loading, submitting } = useSelector((state: RootState) => state.comment);
   const { user } = useSelector((state: RootState) => state.user);
   const [commentText, setCommentText] = useState('');
   const commentsEndRef = useRef<HTMLDivElement>(null);
@@ -33,10 +33,11 @@ const CommentModal: React.FC<CommentModalProps> = ({ isOpen, onClose, post }) =>
       toast.error("Please login to comment");
       return;
     }
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || submitting) return;
 
     try {
-      await dispatch(addComment({ content: commentText, postId: post._id })).unwrap();
+      const trimmedComment = commentText.trim();
+      await dispatch(addComment({ content: trimmedComment, postId: post._id })).unwrap();
       setCommentText('');
       setTimeout(() => {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -147,10 +148,10 @@ const CommentModal: React.FC<CommentModalProps> = ({ isOpen, onClose, post }) =>
                 />
                 <button
                   type="submit"
-                  disabled={!commentText.trim() || loading}
+                  disabled={!commentText.trim() || loading || submitting}
                   className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-xl transition-colors disabled:opacity-30"
                 >
-                  <Send size={20} />
+                  {submitting ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                 </button>
               </form>
             </div>

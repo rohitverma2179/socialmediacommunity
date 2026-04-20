@@ -38,6 +38,11 @@ export const fetchUserPosts = createAsyncThunk('post/fetchUserPosts', async (use
   return response.data.data.posts;
 });
 
+export const fetchLikedPosts = createAsyncThunk('post/fetchLikedPosts', async (userId: string) => {
+  const response = await axiosInstance.get(`${API_URL}/liked/${userId}`);
+  return response.data.data.posts;
+});
+
 export const fetchPostById = createAsyncThunk('post/fetchPostById', async (postId: string) => {
   const response = await axiosInstance.get(`${API_URL}/${postId}`);
   return response.data.data.post;
@@ -46,6 +51,7 @@ export const fetchPostById = createAsyncThunk('post/fetchPostById', async (postI
 interface PostState {
   posts: any[];
   userPosts: any[];
+  likedPosts: any[];
   loading: boolean;
   error: string | null;
   isPostModalOpen: boolean;
@@ -54,14 +60,16 @@ interface PostState {
 const initialState: PostState = {
   posts: [],
   userPosts: [],
+  likedPosts: [],
   loading: false,
   error: null,
   isPostModalOpen: false,
 };
 
-export const likePost = createAsyncThunk('post/likePost', async (postId: string) => {
+export const likePost = createAsyncThunk('post/likePost', async (postId: string, { getState }) => {
   const response = await axiosInstance.post(`${API_URL}/${postId}/like`, {});
-  return { postId, likes: response.data.data.likes };
+  const state = getState() as { user: { user: { _id?: string } | null } };
+  return { postId, likes: response.data.data.likes, currentUserId: state.user.user?._id };
 });
 
 const postSlice = createSlice({
@@ -83,6 +91,9 @@ const postSlice = createSlice({
       
       const userPost = state.userPosts.find(p => p._id === action.payload.postId);
       if (userPost) userPost.likes = action.payload.likes;
+
+      const likedPost = state.likedPosts.find(p => p._id === action.payload.postId);
+      if (likedPost) likedPost.likes = action.payload.likes;
     },
     addNewPost: (state, action: PayloadAction<any>) => {
       const exists = state.posts.some(p => p._id === action.payload._id);
@@ -103,6 +114,9 @@ const postSlice = createSlice({
       
       const userIndex = state.userPosts.findIndex(p => p._id === action.payload._id);
       if (userIndex !== -1) state.userPosts[userIndex] = action.payload;
+
+      const likedIndex = state.likedPosts.findIndex(p => p._id === action.payload._id);
+      if (likedIndex !== -1) state.likedPosts[likedIndex] = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -133,6 +147,9 @@ const postSlice = createSlice({
       .addCase(fetchUserPosts.fulfilled, (state, action) => {
         state.userPosts = action.payload;
       })
+      .addCase(fetchLikedPosts.fulfilled, (state, action) => {
+        state.likedPosts = action.payload;
+      })
       .addCase(likePost.fulfilled, (state, action) => {
         const post = state.posts.find(p => p._id === action.payload.postId);
         if (post) {
@@ -141,6 +158,15 @@ const postSlice = createSlice({
         const userPost = state.userPosts.find(p => p._id === action.payload.postId);
         if (userPost) {
           userPost.likes = action.payload.likes;
+        }
+        const likedPost = state.likedPosts.find(p => p._id === action.payload.postId);
+        if (likedPost) {
+          likedPost.likes = action.payload.likes;
+        }
+
+        const stillLikedByCurrentUser = !!action.payload.currentUserId && action.payload.likes.includes(action.payload.currentUserId);
+        if (likedPost && !stillLikedByCurrentUser) {
+          state.likedPosts = state.likedPosts.filter(p => p._id !== action.payload.postId);
         }
       })
       .addMatcher(
@@ -153,6 +179,9 @@ const postSlice = createSlice({
             
             const userPost = state.userPosts.find(p => p._id === postId);
             if (userPost) userPost.commentsCount = (userPost.commentsCount || 0) + 1;
+
+            const likedPost = state.likedPosts.find(p => p._id === postId);
+            if (likedPost) likedPost.commentsCount = (likedPost.commentsCount || 0) + 1;
           }
         }
       );

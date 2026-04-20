@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../store/store';
-import { fetchUserPosts } from '../store/post/post.slice';
+import { fetchUserPosts, fetchLikedPosts } from '../store/post/post.slice';
 import PostCard from '../component/PostCard';
 import Navbar from '../component/Navbar';
 import { Share2, PlusCircle, Edit3, Loader2 } from 'lucide-react';
@@ -9,15 +9,17 @@ import { motion } from 'framer-motion';
 
 const Profile: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
-  const { userPosts, loading } = useSelector((state: RootState) => state.post);
+  const { userPosts, likedPosts, loading } = useSelector((state: RootState) => state.post);
   const dispatch = useDispatch<AppDispatch>();
   const [activeTab, setActiveTab] = useState('Profile');
+  const savedPosts = user?.savedPosts || [];
 
   const tabs = ['Profile', 'Questions', 'Answers', 'Post', 'Like', 'Saved', 'Shared'];
 
   useEffect(() => {
     if (user?._id) {
       dispatch(fetchUserPosts(user._id));
+      dispatch(fetchLikedPosts(user._id));
     }
   }, [user, dispatch]);
 
@@ -111,6 +113,32 @@ const Profile: React.FC = () => {
                      )}
                    </div>
                  )}
+               </div>
+             ) : activeTab === 'Saved' ? (
+               <div className="w-full">
+                 <div className="space-y-6">
+                   {savedPosts.map((post: any) => (
+                     <PostCard key={post._id} post={post} />
+                   ))}
+                   {savedPosts.length === 0 && (
+                     <div className="text-center py-20 bg-[#161617] rounded-3xl border border-dashed border-[#2d2d2e]">
+                       <p className="text-sm italic text-gray-600">You haven't saved any posts yet.</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             ) : activeTab === 'Like' ? (
+               <div className="w-full">
+                 <div className="space-y-6">
+                   {likedPosts.map((post: any) => (
+                     <PostCard key={post._id} post={post} />
+                   ))}
+                   {likedPosts.length === 0 && (
+                     <div className="text-center py-20 bg-[#161617] rounded-3xl border border-dashed border-[#2d2d2e]">
+                       <p className="text-sm italic text-gray-600">You haven't liked any posts yet.</p>
+                     </div>
+                   )}
+                 </div>
                </div>
              ) : (
                <div className="flex flex-col items-center justify-center py-20 text-[#8e8e8f]">

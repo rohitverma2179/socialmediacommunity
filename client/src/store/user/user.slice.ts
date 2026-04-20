@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { signupUser, loginUser, googleLogin, facebookLogin, getMe, logoutUser, verifyOTP, resendOTP } from "./user.thunk";
+import { signupUser, loginUser, googleLogin, facebookLogin, getMe, logoutUser, verifyOTP, resendOTP, toggleSavePost } from "./user.thunk";
 
 
 
@@ -98,6 +98,19 @@ const userSlice = createSlice({
         state.success = true;
       })
       .addCase(resendOTP.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = (action.payload as any)?.message || action.payload as string;
+      })
+      .addCase(toggleSavePost.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(toggleSavePost.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.data?.user || state.user;
+        state.success = true;
+      })
+      .addCase(toggleSavePost.rejected, (state, action) => {
         state.isLoading = false;
         state.error = (action.payload as any)?.message || action.payload as string;
       });
