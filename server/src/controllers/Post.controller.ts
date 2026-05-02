@@ -60,6 +60,9 @@ export const getPostById = async (req: Request, res: Response): Promise<any> => 
   }
 };
 
+
+
+
 export const getPosts = async (req: Request, res: Response): Promise<any> => {
   try {
     const posts = await Post.find()
@@ -75,6 +78,9 @@ export const getPosts = async (req: Request, res: Response): Promise<any> => {
     res.status(500).json({ status: "error", message: error.message });
   }
 };
+
+
+
 
 export const getUserPosts = async (req: Request, res: Response): Promise<any> => {
   try {

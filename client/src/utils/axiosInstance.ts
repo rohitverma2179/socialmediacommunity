@@ -5,6 +5,11 @@ const BASE_URL = window.location.hostname === "localhost"
   // : "https://community-final-vf8t.vercel.app/api";
   : "https://socialmediacommunitybackend.vercel.app/api";
 
+
+
+  
+
+
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
