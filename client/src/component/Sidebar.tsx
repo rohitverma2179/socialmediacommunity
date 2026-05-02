@@ -1,11 +1,14 @@
 import React from "react";
 import { Globe, ChevronDown, ChevronRight } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import pdf from "../assets/icons/pdf.svg";
 import doc from "../assets/icons/document.svg";
 import excel from "../assets/icons/excel.svg";
 import jpeg from "../assets/icons/jpeg.svg";
 
 const Sidebar: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const domains = [
     "Environment, Health & Safety (EHS) Solution",
     "Managements Systems & Compliance",
@@ -55,27 +58,40 @@ const Sidebar: React.FC = () => {
             {
               name: "PDF",
               icon: <img src={pdf} alt="PDF" className="w-6 h-6" />,
+              path: "/resources/pdf",
             },
             {
               name: "Documents",
               icon: <img src={doc} alt="Documents" className="w-6 h-6" />,
+              path: "",
             },
             {
               name: "jpeg",
               icon: <img src={jpeg} alt="jpeg" className="w-6 h-6" />,
+              path: "",
             },
             {
               name: "Excel",
               icon: <img src={excel} alt="Excel" className="w-6 h-6" />,
+              path: "",
             },
           ].map((item) => (
             <button
               key={item.name}
-              className="w-full flex items-center justify-between group py-0.5 hover:translate-x-1 transition-all"
+              onClick={() => item.path && navigate(item.path)}
+              className={`w-full flex items-center justify-between group py-0.5 transition-all ${
+                item.path ? "hover:translate-x-1" : "cursor-default opacity-70"
+              }`}
             >
               <div className="flex items-center gap-3">
                 <div className="p-2">{item.icon}</div>
-                <span className="text-white font-medium text-md">
+                <span
+                  className={`font-medium text-md ${
+                    item.path && location.pathname === item.path
+                      ? "text-blue-400"
+                      : "text-white"
+                  }`}
+                >
                   {item.name}
                 </span>
               </div>

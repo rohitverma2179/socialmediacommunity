@@ -1,7 +1,17 @@
 import type { Request, Response } from "express";
+import axios from "axios";
 import Post from "../models/Post.model.js";
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 import { getIO } from "../utils/socket.js";
+
+const sanitizeFileName = (fileName: string) => {
+  const safeName = fileName
+    .replace(/[^a-z0-9_.-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return safeName || "resource.pdf";
+};
 
 export const createPost = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
@@ -115,6 +125,64 @@ export const getLikedPosts = async (req: Request, res: Response): Promise<any> =
     res.status(500).json({ status: "error", message: error.message });
   }
 };
+
+export const downloadPdf = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const pdfUrl = String(req.query.url || "");
+    const requestedName = sanitizeFileName(String(req.query.name || "resource.pdf"));
+    const fileName = requestedName.toLowerCase().endsWith(".pdf")
+      ? requestedName
+      : `${requestedName}.pdf`;
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(pdfUrl);
+    } catch {
+      return res.status(400).json({ status: "fail", message: "Invalid PDF URL" });
+    }
+
+    const isCloudinaryPdf =
+      parsedUrl.protocol === "https:" &&
+      parsedUrl.hostname === "res.cloudinary.com" &&
+      parsedUrl.pathname.toLowerCase().endsWith(".pdf");
+
+    if (!isCloudinaryPdf) {
+      return res.status(400).json({ status: "fail", message: "Only Cloudinary PDF downloads are allowed" });
+    }
+
+    const pdfResponse = await axios.get(pdfUrl, {
+      responseType: "stream",
+      validateStatus: () => true,
+    });
+
+    if (pdfResponse.status === 401 || pdfResponse.status === 403) {
+      return res.status(403).json({
+        status: "fail",
+        message:
+          "Cloudinary is blocking PDF delivery for this account. Enable 'Allow delivery of PDF and ZIP files' in Cloudinary Security settings.",
+      });
+    }
+
+    if (pdfResponse.status < 200 || pdfResponse.status >= 300) {
+      return res.status(502).json({
+        status: "fail",
+        message: `Cloudinary could not deliver this PDF. Status: ${pdfResponse.status}`,
+      });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Cache-Control", "no-store");
+
+    pdfResponse.data.pipe(res);
+  } catch (error: any) {
+    res.status(500).json({
+      status: "error",
+      message: error.message || "Failed to download PDF",
+    });
+  }
+};
+
 export const likePost = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { postId } = req.params;

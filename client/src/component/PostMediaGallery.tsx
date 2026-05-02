@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { buildPdfFileName, downloadPdf, getPdfPreviewUrl } from '../utils/pdfDownload';
 
 interface PostMediaGalleryProps {
   images: string[];
@@ -41,29 +42,25 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
 
   if (mediaType === 'pdf') {
     const mediaUrl = images[0];
-    const getPdfPreviewUrl = (pageNumber: number) => {
-      return mediaUrl.replace('/upload/', `/upload/pg_${pageNumber}/`).replace('.pdf', '.jpg');
-    };
 
     return (
       <div className="overflow-hidden bg-[#1e1e1e] border border-[#333] rounded-xl">
         <div className="p-3 flex items-center justify-between border-b border-[#333]">
           <span className="text-rose-500 font-bold text-[10px] uppercase tracking-wider">PDF PREVIEW</span>
           <div className="flex items-center gap-2">
-            <a
-              href={mediaUrl}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => downloadPdf(mediaUrl, buildPdfFileName('post-resource'))}
               className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-[10px] font-bold transition-all"
             >
               Download
-            </a>
+            </button>
           </div>
         </div>
 
         <div className={`bg-[#111] ${heightClassName} flex items-center justify-center overflow-hidden`}>
           <img
-            src={getPdfPreviewUrl(1)}
+            src={getPdfPreviewUrl(mediaUrl)}
             alt="PDF Page 1"
             className={`max-w-full ${heightClassName} object-contain`}
             onError={(e) => {
