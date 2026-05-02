@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import AuthPage from './component/Login';
 import VerifyOTP from './pages/VerifyOTP';
 import SocketListener from './component/SocketListener';
+import Resources from './pages/Resources';
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -34,6 +35,8 @@ const App: React.FC = () => {
         <Route path="/" element={<Community />} />
         <Route path="/login" element={user ? <Navigate to="/" /> : <AuthPage />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
+        <Route path="/resources/pdf" element={<Resources />} />
+        <Route path="/library" element={<Resources />} />
         <Route path="/post/:postId" element={<Community />} />
         <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
         {/* Fallback */}
