@@ -1,11 +1,11 @@
 import axiosInstance from './axiosInstance';
 
-export const getPdfPreviewUrl = (pdfUrl: string) => {
+export const getPdfPreviewUrl = (pdfUrl: string, page: number = 1) => {
   const withoutQuery = pdfUrl.split('?')[0];
   const extension = withoutQuery.split('.').pop()?.toLowerCase();
 
   if (extension === 'pdf') {
-    return pdfUrl.replace('/upload/', '/upload/pg_1/').replace(/\.pdf(\?.*)?$/i, '.jpg$1');
+    return pdfUrl.replace('/upload/', `/upload/pg_${page}/`).replace(/\.pdf(\?.*)?$/i, '.jpg$1');
   }
 
   return pdfUrl;

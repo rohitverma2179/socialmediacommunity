@@ -1,33 +1,37 @@
 import React, { useEffect } from 'react';
-import { Download, FileText, Loader2 } from 'lucide-react';
+import {  FileText, Loader2, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import MainLayout from '../component/MainLayout';
 import type { AppDispatch, RootState } from '../store/store';
 import { fetchPosts } from '../store/post/post.slice';
-import { buildPdfFileName, downloadPdf, getPdfPreviewUrl } from '../utils/pdfDownload';
+// import { buildPdfFileName, downloadPdf, getPdfPreviewUrl } from '../utils/pdfDownload';
+import PostMediaGallery from '../component/PostMediaGallery';
 
 const Resources: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { posts, loading } = useSelector((state: RootState) => state.post);
-  const { user } = useSelector((state: RootState) => state.user);
-  const [downloadingPostId, setDownloadingPostId] = React.useState<string | null>(null);
-
+  // const { user } = useSelector((state: RootState) => state.user);
+  // const [downloadingPostId, setDownloadingPostId] = React.useState<string | null>(null);
+  const [selectedPdfPost, setSelectedPdfPost] = React.useState<any>(null);
+  
   useEffect(() => {
     if (posts.length === 0) {
       dispatch(fetchPosts());
     }
   }, [dispatch, posts.length]);
-
+  
   const pdfPosts = posts.filter((post) => post.mediaType === 'pdf' && post.images?.[0]);
-
+  
+  console.log(pdfPosts);
+  
   return (
     <MainLayout>
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8BA2AD]">Resources</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em]  text-[#8BA2AD]">Resources</p>
             <h1 className="mt-1 text-2xl font-black text-white">PDF Library</h1>
           </div>
           <div className="rounded-full border border-[#333] bg-[#262626] px-3 py-1 text-[11px] font-bold text-[#8BA2AD]">
@@ -46,76 +50,79 @@ const Resources: React.FC = () => {
             <p className="mt-2 text-xs text-[#8BA2AD]">PDF posts will appear here automatically.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-1">
-            {pdfPosts.map((post) => {
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {pdfPosts.map(( post) => {
               const pdfUrl = post.images[0];
-              const title = post.content || 'PDF resource';
-              const isDownloading = downloadingPostId === post._id;
-
-              const handleDownload = async () => {
-                if (!user) {
-                  window.alert('Please login first to download PDFs.');
-                  navigate('/login');
-                  return;
-                }
-
-                setDownloadingPostId(post._id);
-                await downloadPdf(pdfUrl, buildPdfFileName(title));
-                setDownloadingPostId(null);
-              };
-
+              const extractedName = pdfUrl?.split('/').pop()?.split('?')[0];
+              const fileName = extractedName ? decodeURIComponent(extractedName) : 'Document.pdf';
+              console.log(fileName)
               return (
-                <article
+                <div
                   key={post._id}
-                  className="overflow-hidden rounded-2xl border border-[#333] bg-[#262626] shadow-xl transition-colors hover:border-blue-500/40"
+                  onClick={() => setSelectedPdfPost(post)}
+                  className="group flex flex-col items-center justify-center rounded-2xl border border-[#333] bg-[#1a1a1a] p-6 shadow-xl transition-all hover:-translate-y-1 hover:border-red-500/50 hover:bg-[#202020] cursor-pointer text-center"
                 >
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/post/${post._id}`)}
-                    className="block w-full bg-[#111] text-left"
-                  >
-                    <div className="relative w-full max-h-[420px] overflow-hidden bg-[#111]">
-                      <img
-                        src={getPdfPreviewUrl(pdfUrl)}
-                        alt={`${title} first page`}
-                        className="h-full w-full object-contain"
-                        onError={(event) => {
-                          event.currentTarget.src = 'https://placehold.co/600x800?text=PDF+Preview';
-                        }}
-                      />
+                  {/* Custom PDF Icon mimicking the user's image */}
+                  <div className="relative w-[72px] h-[96px] bg-white border-[3px] border-red-600 rounded-lg flex flex-col items-center justify-between py-2 shadow-sm">
+                    {/* Folded corner illusion */}
+                    <div className="absolute -top-[3px] -right-[3px] w-0 h-0 border-t-[22px] border-t-[#1a1a1a] border-l-[22px] border-l-transparent group-hover:border-t-[#202020] transition-colors z-10" />
+                    <div className="absolute top-0 right-0 w-5 h-5 border-b-[3px] border-l-[3px] border-red-600 bg-gray-100 rounded-bl-md z-20" />
+                    
+                    {/* Red graphic inside */}
+                    <div className="flex-1 flex items-center justify-center w-full mt-2 pl-1">
+                      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 3s-3 6 0 10c3 4-3 6-3 6" />
+                        <path d="M14 9c0 0-4-3-6 0s0 6 0 6" />
+                      </svg>
                     </div>
-                  </button>
-
-                  <div className="border-t border-[#333] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="line-clamp-2 text-sm font-bold leading-snug text-white">{title}</p>
-                        <p className="mt-2 text-[11px] font-medium text-[#8BA2AD]">
-                          {post.user?.name || 'Unknown User'}
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        title="Download PDF"
-                        aria-label="Download PDF"
-                        disabled={isDownloading}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-60"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDownload();
-                        }}
-                      >
-                        {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
-                      </button>
-                    </div>
+                    {/* PDF text */}
+                    <div className="w-full font-black text-gray-900 text-[15px] tracking-widest leading-none mt-1">PDF</div>
                   </div>
-                </article>
+
+                  <div className="mt-5 w-full">
+                    <p className="line-clamp-2 text-sm font-bold leading-snug text-white group-hover:text-red-400 transition-colors" title={fileName}>{fileName}</p>
+                    <p className="mt-1.5 text-[11px] font-medium text-[#8BA2AD]">
+                      {post.user?.name || 'Unknown User'}
+                    </p>
+                  </div>
+                </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* PDF Modal Viewer */}
+      {selectedPdfPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-6">
+          <div className="relative w-full max-w-4xl bg-[#111] border border-[#333] rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#333] p-4 bg-[#1a1a1a]">
+              <div className="pr-4">
+                <h3 className="text-white font-bold text-lg line-clamp-1" title={selectedPdfPost.images?.[0]?.split('/').pop()?.split('?')[0] ? decodeURIComponent(selectedPdfPost.images[0].split('/').pop().split('?')[0]) : 'Document.pdf'}>
+                  {selectedPdfPost.images?.[0]?.split('/').pop()?.split('?')[0] ? decodeURIComponent(selectedPdfPost.images[0].split('/').pop().split('?')[0]) : 'Document.pdf'}
+                </h3>
+                <p className="text-xs text-[#8BA2AD] mt-1">By {selectedPdfPost.user?.name || 'Unknown User'}</p>
+              </div>
+              <button
+                onClick={() => setSelectedPdfPost(null)}
+                className="p-2 bg-[#333] text-gray-300 hover:text-white rounded-full hover:bg-red-500 transition-colors flex-shrink-0"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {/* Modal Body - Uses existing smooth scroller */}
+            <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1 bg-black/50">
+              <PostMediaGallery
+                images={selectedPdfPost.images}
+                mediaType="pdf"
+                heightClassName="h-[65vh] md:h-[50vh]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 };

@@ -162,4 +162,5 @@ const CommentModal: React.FC<CommentModalProps> = ({ isOpen, onClose, post }) =>
   );
 };
 
+
 export default CommentModal;

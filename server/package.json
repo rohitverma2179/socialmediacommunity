@@ -2,11 +2,19 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "dev": "nodemon",
     "build": "tsc"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src",
+      ".env"
+    ],
+    "ext": "ts,js,json",
+    "exec": "tsx src/index.ts"
   },
   "keywords": [],
   "author": "",

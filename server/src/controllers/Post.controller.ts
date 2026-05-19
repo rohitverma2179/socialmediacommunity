@@ -70,9 +70,6 @@ export const getPostById = async (req: Request, res: Response): Promise<any> => 
   }
 };
 
-
-
-
 export const getPosts = async (req: Request, res: Response): Promise<any> => {
   try {
     const posts = await Post.find()
