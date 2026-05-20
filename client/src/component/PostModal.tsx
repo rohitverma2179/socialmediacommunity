@@ -14,6 +14,7 @@ import type { AppDispatch } from "../store/store";
 import { createPost } from "../store/post/post.slice";
 import { motion, AnimatePresence } from "framer-motion";
 
+
 interface PostModalProps {
   isOpen: boolean;
   onClose: () => void;
