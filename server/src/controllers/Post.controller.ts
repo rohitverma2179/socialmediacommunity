@@ -15,7 +15,7 @@ const sanitizeFileName = (fileName: string) => {
 
 export const createPost = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
-    const { content, images, mediaType } = req.body;
+    const { content, images, mediaType, scheduledAt, status } = req.body;
     const normalizedImages = Array.isArray(images) ? images.filter(Boolean) : [];
 
     if (!content) {
@@ -30,18 +30,27 @@ export const createPost = async (req: AuthRequest, res: Response): Promise<any> 
       return res.status(400).json({ status: "fail", message: `Only one ${mediaType} can be uploaded per post` });
     }
 
+    let postStatus = status || 'published';
+    if (!status && scheduledAt) {
+      postStatus = 'scheduled';
+    }
+
     const newPost = await Post.create({
       user: req.user._id,
       content,
       images: normalizedImages,
-      mediaType: mediaType || 'image'
+      mediaType: mediaType || 'image',
+      status: postStatus,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
     });
 
     const populatedPost = await newPost.populate("user", "name email");
 
-    // Emit real-time update
-    const io = getIO();
-    io.emit("newPost", populatedPost);
+    // Emit real-time update only if published
+    if (newPost.status === 'published') {
+      const io = getIO();
+      io.emit("newPost", populatedPost);
+    }
 
     res.status(201).json({
       status: "success",
@@ -72,7 +81,7 @@ export const getPostById = async (req: Request, res: Response): Promise<any> => 
 
 export const getPosts = async (req: Request, res: Response): Promise<any> => {
   try {
-    const posts = await Post.find()
+    const posts = await Post.find({ $or: [{ status: 'published' }, { status: { $exists: false } }] })
       .populate("user", "name email")
       .sort("-createdAt");
 
@@ -109,7 +118,7 @@ export const getUserPosts = async (req: Request, res: Response): Promise<any> =>
 export const getLikedPosts = async (req: Request, res: Response): Promise<any> => {
   try {
     const { userId } = req.params;
-    const posts = await Post.find({ likes: userId } as any)
+    const posts = await Post.find({ likes: userId, $or: [{ status: 'published' }, { status: { $exists: false } }] } as any)
       .populate("user", "name email")
       .sort("-createdAt");
 
@@ -200,7 +209,7 @@ export const likePost = async (req: AuthRequest, res: Response): Promise<any> =>
     }
 
     await post.save();
-    
+
     // Emit real-time update
     const io = getIO();
     io.emit("postLiked", { postId, likes: post.likes });
@@ -217,7 +226,7 @@ export const likePost = async (req: AuthRequest, res: Response): Promise<any> =>
 export const updatePost = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { postId } = req.params;
-    const { content } = req.body;
+    const { content, scheduledAt, status } = req.body;
     const userId = req.user._id;
 
     const post = await Post.findById(postId);
@@ -230,14 +239,29 @@ export const updatePost = async (req: AuthRequest, res: Response): Promise<any> 
       return res.status(403).json({ status: "fail", message: "You can only edit your own posts" });
     }
 
-    post.content = content || post.content;
+    if (content) post.content = content;
+    if (status) post.status = status;
+    if (scheduledAt !== undefined) {
+      post.scheduledAt = scheduledAt ? new Date(scheduledAt) : undefined;
+      // If we are setting a new date and it's not draft/failed, reset to scheduled
+      if (!status && post.status !== 'draft' && post.status !== 'failed' && post.scheduledAt) {
+        post.status = 'scheduled';
+      }
+    }
+    
+    // If they changed status to published from something else
+    const wasPublished = post.status === 'published';
+    
     await post.save();
 
     const populatedPost = await post.populate("user", "name email");
 
     // Emit real-time update
-    const io = getIO();
-    io.emit("postUpdated", populatedPost);
+    if (post.status === 'published') {
+      const io = getIO();
+      // If it was just published, we might want to emit newPost, otherwise postUpdated
+      io.emit("postUpdated", populatedPost);
+    }
 
     res.status(200).json({
       status: "success",
@@ -247,3 +271,48 @@ export const updatePost = async (req: AuthRequest, res: Response): Promise<any> 
     res.status(500).json({ status: "error", message: error.message });
   }
 };
+
+export const deletePost = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ status: "fail", message: "Post not found" });
+    }
+
+    if (post.user.toString() !== userId.toString()) {
+      return res.status(403).json({ status: "fail", message: "You can only delete your own posts" });
+    }
+
+    await post.deleteOne();
+
+    if (post.status === 'published') {
+      const io = getIO();
+      io.emit("postDeleted", { postId });
+    }
+
+    res.status(200).json({ status: "success", message: "Post deleted successfully" });
+  } catch (error: any) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+export const getScheduledPosts = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const userId = req.user._id;
+    const posts = await Post.find({ 
+      user: userId, 
+      status: { $in: ['scheduled', 'draft', 'failed'] } 
+    }).populate("user", "name email").sort("scheduledAt");
+
+    res.status(200).json({
+      status: "success",
+      results: posts.length,
+      data: { posts },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};

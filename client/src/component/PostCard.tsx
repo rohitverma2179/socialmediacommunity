@@ -14,9 +14,10 @@ import { toggleSavePost } from '../store/user/user.thunk';
 interface PostCardProps {
   post: any;
   isDetailed?: boolean;
+  isScheduledView?: boolean;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false, isScheduledView = false }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
@@ -25,6 +26,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
+  const [editDate, setEditDate] = useState(post.scheduledAt ? new Date(post.scheduledAt).toISOString().split('T')[0] : '');
+  const [editTime, setEditTime] = useState(post.scheduledAt ? new Date(post.scheduledAt).toTimeString().slice(0, 5) : '');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isOwner = user && (post.user?._id === user._id || post.user === user._id);
@@ -57,7 +60,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
 
   const handleUpdate = async () => {
     if (!editContent.trim()) return;
-    await dispatch(updatePost({ postId: post._id, content: editContent }));
+    
+    const updateData: any = { postId: post._id, content: editContent };
+    
+    if (isScheduledView && editDate && editTime) {
+      updateData.scheduledAt = new Date(`${editDate}T${editTime}`).toISOString();
+    }
+    
+    await dispatch(updatePost(updateData));
     setIsEditing(false);
     setShowDropdown(false);
   };
@@ -116,11 +126,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
             <h4 className="text-sm font-bold text-gray-100 hover:underline cursor-pointer" onClick={() => navigate('/profile')}>
               {post.user?.name || 'Unknown User'}
             </h4>
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
-              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-              <span>•</span>
-              <Share2 size={10} />
-              <span>Public</span>
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium mt-0.5">
+              {isScheduledView ? (
+                <span className="text-blue-400">
+                  Scheduled for: {new Date(post.scheduledAt).toLocaleString()}
+                </span>
+              ) : (
+                <>
+                  <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                  <span>•</span>
+                  <Share2 size={10} />
+                  <span>Public</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -180,7 +198,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
       <div className="px-0 pb-4">
         <div className="px-4 mb-3">
           {isEditing ? (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -188,6 +206,27 @@ const PostCard: React.FC<PostCardProps> = ({ post, isDetailed = false }) => {
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
               />
+              
+              {isScheduledView && (
+                <div className="flex gap-4">
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="flex-1 bg-[#1a1a1b] border border-[#333] rounded-lg p-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <input
+                    type="time"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    className="flex-1 bg-[#1a1a1b] border border-[#333] rounded-lg p-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
+
               <div className="flex justify-end gap-2">
                 <button
                   onClick={(e) => {

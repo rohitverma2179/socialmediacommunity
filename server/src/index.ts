@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import http from "http";
 import { initSocket } from "./utils/socket.js";
+import { initCronJobs } from "./utils/cron.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +16,9 @@ const PORT = process.env.PORT || 3000;
 
 // Initialize Socket.io
 initSocket(server);
+
+// Initialize Cron Jobs
+initCronJobs();
 
 // Connect to DB
 await connectDB();

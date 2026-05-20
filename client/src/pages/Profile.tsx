@@ -14,7 +14,7 @@ const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Profile');
   const savedPosts = user?.savedPosts || [];
 
-  const tabs = ['Profile', 'Questions', 'Answers', 'Post', 'Like', 'Saved', 'Shared'];
+  const tabs = ['Profile', 'Questions', 'Answers', 'Post', 'Like', 'Saved', 'Shared', 'Schedule'];
 
   useEffect(() => {
     if (user?._id) {
@@ -103,12 +103,31 @@ const Profile: React.FC = () => {
                    </div>
                  ) : (
                    <div className="space-y-6">
-                     {userPosts.map((post) => (
+                     {userPosts.filter(p => !p.status || p.status === 'published').map((post) => (
                        <PostCard key={post._id} post={post} />
                      ))}
-                     {userPosts.length === 0 && (
+                     {userPosts.filter(p => !p.status || p.status === 'published').length === 0 && (
                        <div className="text-center py-20 bg-[#161617] rounded-3xl border border-dashed border-[#2d2d2e]">
                          <p className="text-sm italic text-gray-600">You haven't posted anything yet.</p>
+                       </div>
+                     )}
+                   </div>
+                 )}
+               </div>
+             ) : activeTab === 'Schedule' ? (
+               <div className="w-full">
+                 {loading ? (
+                   <div className="flex justify-center py-10 text-white">
+                     <Loader2 className="animate-spin text-blue-500" size={24} />
+                   </div>
+                 ) : (
+                   <div className="space-y-6">
+                     {userPosts.filter(p => p.status === 'scheduled').map((post) => (
+                       <PostCard key={post._id} post={post} isScheduledView={true} />
+                     ))}
+                     {userPosts.filter(p => p.status === 'scheduled').length === 0 && (
+                       <div className="text-center py-20 bg-[#161617] rounded-3xl border border-dashed border-[#2d2d2e]">
+                         <p className="text-sm italic text-gray-600">You don't have any scheduled posts.</p>
                        </div>
                      )}
                    </div>
