@@ -35,6 +35,9 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const [uploadType, setUploadType] = useState<
     "image" | "video" | "pdf" | "gif"
   >("image");
+  const [scheduleType, setScheduleType] = useState<"now" | "later">("now");
+  const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().split("T")[0]);
+  const [scheduleTime, setScheduleTime] = useState(new Date().toTimeString().slice(0, 5));
   const dispatch = useDispatch<AppDispatch>();
   //
 
@@ -258,16 +261,21 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     if (!content.trim() || isUploading || isPosting) return;
     setIsPosting(true);
     try {
-      await dispatch(
-        createPost({
-          content,
-          images: media.map((item) => item.url),
-          mediaType: media[0]?.type || "image",
-        } as any),
-      ).unwrap();
+      const payload: any = {
+        content,
+        images: media.map((item) => item.url),
+        mediaType: media[0]?.type || "image",
+      };
+
+      if (scheduleType === "later") {
+        payload.scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+      }
+
+      await dispatch(createPost(payload)).unwrap();
 
       setContent("");
       setMedia([]);
+      setScheduleType("now");
       onClose();
     } catch (err: any) {
       setError("Failed to create post");
@@ -328,7 +336,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                       >
                         {item.type === "video" ? (
                           item.url.includes("youtube.com/") ||
-                          item.url.includes("youtu.be/") ? (
+                            item.url.includes("youtu.be/") ? (
                             <iframe
                               src={`https://www.youtube.com/embed/${item.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]{11})/)?.[1]}`}
                               className="w-full h-40 object-cover"
@@ -401,16 +409,56 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               <div className="border-t border-[#222] bg-[#1a1a1a] p-6 pt-4">
+                {/* Scheduling options */}
+                <div className="mb-4">
+                  <div className="flex gap-4 mb-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="scheduleType"
+                        value="now"
+                        checked={scheduleType === "now"}
+                        onChange={() => setScheduleType("now")}
+                        className="w-4 h-4 text-blue-600 bg-black border-gray-600 focus:ring-blue-600 focus:ring-2"
+                      />
+                      <span className="text-sm font-medium text-gray-300">Publish Now</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="scheduleType"
+                        value="later"
+                        checked={scheduleType === "later"}
+                        onChange={() => setScheduleType("later")}
+                        className="w-4 h-4 text-blue-600 bg-black border-gray-600 focus:ring-blue-600 focus:ring-2"
+                      />
+                      <span className="text-sm font-medium text-gray-300">Schedule for Later</span>
+                    </label>
+                  </div>
+
+                  {scheduleType === "later" && (
+                    <div className="flex gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <input
+                        type="date"
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                        className="flex-1 bg-[#2a2a2a] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-500"
+                      />
+                      <input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                        className="flex-1 bg-[#2a2a2a] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex border-t border-[#222] pt-4 items-center justify-between">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
                     Add Media
                   </span>
-
-                  <input
-                    type="date"
-                    defaultValue={new Date().toISOString().split("T")[0]}
-                    className="text-xs font-bold text-gray-500 uppercase tracking-widest"
-                  />
 
                   <div className="flex gap-1">
                     {[

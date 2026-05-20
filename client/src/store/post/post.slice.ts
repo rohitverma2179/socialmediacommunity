@@ -11,7 +11,7 @@ export const fetchPosts = createAsyncThunk('post/fetchPosts', async () => {
 
 export const createPost = createAsyncThunk(
   'post/createPost',
-  async (postData: { content: string; images?: string[]; mediaType?: 'image' | 'video' | 'pdf' | 'gif' }, { rejectWithValue }) => {
+  async (postData: { content: string; images?: string[]; mediaType?: 'image' | 'video' | 'pdf' | 'gif'; scheduledAt?: string; status?: string }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post(API_URL, postData);
       return response.data.data.post;
@@ -23,9 +23,9 @@ export const createPost = createAsyncThunk(
 
 export const updatePost = createAsyncThunk(
   'post/updatePost',
-  async ({ postId, content }: { postId: string; content: string }, { rejectWithValue }) => {
+  async ({ postId, content, scheduledAt, status }: { postId: string; content?: string; scheduledAt?: string; status?: string }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.patch(`${API_URL}/${postId}`, { content });
+      const response = await axiosInstance.patch(`${API_URL}/${postId}`, { content, scheduledAt, status });
       return response.data.data.post;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update post');
@@ -88,7 +88,7 @@ const postSlice = createSlice({
     updatePostLikes: (state, action: PayloadAction<{ postId: string, likes: string[] }>) => {
       const post = state.posts.find(p => p._id === action.payload.postId);
       if (post) post.likes = action.payload.likes;
-      
+
       const userPost = state.userPosts.find(p => p._id === action.payload.postId);
       if (userPost) userPost.likes = action.payload.likes;
 
@@ -104,14 +104,14 @@ const postSlice = createSlice({
     incrementCommentCount: (state, action: PayloadAction<string>) => {
       const post = state.posts.find(p => p._id === action.payload);
       if (post) post.commentsCount = (post.commentsCount || 0) + 1;
-      
+
       const userPost = state.userPosts.find(p => p._id === action.payload);
       if (userPost) userPost.commentsCount = (userPost.commentsCount || 0) + 1;
     },
     updatePostInState: (state, action: PayloadAction<any>) => {
       const index = state.posts.findIndex(p => p._id === action.payload._id);
       if (index !== -1) state.posts[index] = action.payload;
-      
+
       const userIndex = state.userPosts.findIndex(p => p._id === action.payload._id);
       if (userIndex !== -1) state.userPosts[userIndex] = action.payload;
 
@@ -131,16 +131,26 @@ const postSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch posts';
       })
       .addCase(createPost.fulfilled, (state, action) => {
-        const exists = state.posts.some(p => p._id === action.payload._id);
-        if (!exists) {
-          state.posts.unshift(action.payload);
+        const isPublished = !action.payload.status || action.payload.status === 'published';
+        
+        if (isPublished) {
+          const exists = state.posts.some(p => p._id === action.payload._id);
+          if (!exists) {
+            state.posts.unshift(action.payload);
+          }
         }
+        
+        const existsUser = state.userPosts.some(p => p._id === action.payload._id);
+        if (!existsUser) {
+          state.userPosts.unshift(action.payload);
+        }
+
         state.isPostModalOpen = false;
       })
       .addCase(updatePost.fulfilled, (state, action) => {
         const index = state.posts.findIndex(p => p._id === action.payload._id);
         if (index !== -1) state.posts[index] = action.payload;
-        
+
         const userIndex = state.userPosts.findIndex(p => p._id === action.payload._id);
         if (userIndex !== -1) state.userPosts[userIndex] = action.payload;
       })
@@ -176,7 +186,7 @@ const postSlice = createSlice({
           if (!parentComment) { // Only increment for top-level comments if desired, or all? Let's do all.
             const post = state.posts.find(p => p._id === postId);
             if (post) post.commentsCount = (post.commentsCount || 0) + 1;
-            
+
             const userPost = state.userPosts.find(p => p._id === postId);
             if (userPost) userPost.commentsCount = (userPost.commentsCount || 0) + 1;
 
