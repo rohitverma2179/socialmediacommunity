@@ -9,6 +9,7 @@ export const fetchPosts = createAsyncThunk('post/fetchPosts', async () => {
   return response.data.data.posts;
 });
 
+
 export const createPost = createAsyncThunk(
   'post/createPost',
   async (postData: { content: string; images?: string[]; mediaType?: 'image' | 'video' | 'pdf' | 'gif'; scheduledAt?: string; status?: string }, { rejectWithValue }) => {
